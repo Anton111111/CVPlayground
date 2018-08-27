@@ -58,7 +58,7 @@ public class DrivingIdRecognitionProcessor extends VisionProcessorMulti {
         return new ArrayList<Task>() {{
 //            add(textDetector.processImage(processorImage.getImage()));
 //            add(faceDetector.detectInImage(processorImage.getImage()));
-//            add(roiDetector.findROI(processorImage.getData(), processorImage.getFrameMetadata()));
+            add(roiDetector.findROI(processorImage.getData(), processorImage.getFrameMetadata()));
             add(contoursDetector.findContours(processorImage.getData(), processorImage.getFrameMetadata()));
 
         }};

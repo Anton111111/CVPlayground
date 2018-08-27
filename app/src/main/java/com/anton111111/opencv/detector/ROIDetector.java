@@ -79,7 +79,8 @@ public class ROIDetector implements Closeable {
             Mat mat = OpenCVHelper.matFromByteBuffer(data,
                     frameMetadata.getWidth(),
                     frameMetadata.getHeight(),
-                    android.graphics.ImageFormat.NV21);
+                    android.graphics.ImageFormat.NV21,
+                    frameMetadata.getRotation());
 
             RotatedRect roi = OpenCVHelper.findROI(mat);
 

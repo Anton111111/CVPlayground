@@ -47,7 +47,10 @@ public class ROIGraphic extends Graphic {
             rotatedRect.points(pts);
 
             for (Point pt : pts) {
-                canvas.drawCircle((float) pt.x, (float) pt.y, POINT_RADIUS, paint);
+                canvas.drawCircle(
+                        translateX((float) pt.x),
+                        translateY((float) pt.y),
+                        POINT_RADIUS, paint);
             }
 
         }
