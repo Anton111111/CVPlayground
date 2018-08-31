@@ -4,7 +4,6 @@ import android.app.Activity;
 import android.os.AsyncTask;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.util.Log;
 
 import com.anton111111.opencv.OpenCVHelper;
 import com.google.android.gms.tasks.OnCompleteListener;
@@ -15,12 +14,11 @@ import com.google.firebase.samples.apps.mlkit.FrameMetadata;
 
 import org.opencv.core.Mat;
 import org.opencv.core.Point;
-import org.opencv.core.RotatedRect;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.Executor;
 
 public class ROIDetector implements Closeable {
@@ -30,7 +28,7 @@ public class ROIDetector implements Closeable {
     private ROITask task;
 
 
-    public Task<RotatedRect> findROI(ByteBuffer data,
+    public Task<List<Point>> findROI(ByteBuffer data,
                                      final FrameMetadata frameMetadata) {
         task = new ROITask();
         findROITask = new FindROITask(data, frameMetadata, task);
@@ -45,14 +43,14 @@ public class ROIDetector implements Closeable {
         }
     }
 
-    private static class FindROITask extends AsyncTask<Void, Void, RotatedRect> {
+    private static class FindROITask extends AsyncTask<Void, Void, List<Point>> {
 
         private final ByteBuffer data;
         private final FrameMetadata frameMetadata;
         private final ROITask task;
         private boolean isCanceled = false;
         private boolean isCompleted = false;
-        private RotatedRect rotatedRect = null;
+        private List<Point> roi = null;
 
         public boolean isCanceled() {
             return isCanceled;
@@ -62,8 +60,8 @@ public class ROIDetector implements Closeable {
             return isCompleted;
         }
 
-        public RotatedRect getResult() {
-            return rotatedRect;
+        public List<Point> getResult() {
+            return roi;
         }
 
 
@@ -75,14 +73,14 @@ public class ROIDetector implements Closeable {
         }
 
         @Override
-        protected RotatedRect doInBackground(Void... voids) {
+        protected List<Point> doInBackground(Void... voids) {
             Mat mat = OpenCVHelper.matFromByteBuffer(data,
                     frameMetadata.getWidth(),
                     frameMetadata.getHeight(),
                     android.graphics.ImageFormat.NV21,
                     frameMetadata.getRotation());
 
-            RotatedRect roi = OpenCVHelper.findROI(mat);
+            List<Point> roi = OpenCVHelper.findROI(mat);
 
             return roi;
         }
@@ -94,28 +92,28 @@ public class ROIDetector implements Closeable {
         }
 
         @Override
-        protected void onPostExecute(RotatedRect rotatedRect) {
-            super.onPostExecute(rotatedRect);
-            this.rotatedRect = rotatedRect;
+        protected void onPostExecute(List<Point> roi) {
+            super.onPostExecute(roi);
+            this.roi = roi;
             isCompleted = true;
             if (task != null) {
-                task.getOnSuccessListener().onSuccess(rotatedRect);
+                task.getOnSuccessListener().onSuccess(this.roi);
                 task.getOnCompleteListener().onComplete(task);
             }
         }
 
     }
 
-    private class ROITask extends Task<RotatedRect> {
+    private class ROITask extends Task<List<Point>> {
 
-        private OnCompleteListener<RotatedRect> onCompleteListener;
-        private OnSuccessListener<? super RotatedRect> onSuccessListener;
+        private OnCompleteListener<List<Point>> onCompleteListener;
+        private OnSuccessListener<? super List<Point>> onSuccessListener;
 
-        public OnCompleteListener<RotatedRect> getOnCompleteListener() {
+        public OnCompleteListener<List<Point>> getOnCompleteListener() {
             return onCompleteListener;
         }
 
-        public OnSuccessListener<? super RotatedRect> getOnSuccessListener() {
+        public OnSuccessListener<? super List<Point>> getOnSuccessListener() {
             return onSuccessListener;
         }
 
@@ -144,7 +142,7 @@ public class ROIDetector implements Closeable {
         }
 
         @Override
-        public RotatedRect getResult() {
+        public List<Point> getResult() {
             if (findROITask != null && findROITask.isCompleted()) {
                 return findROITask.getResult();
             }
@@ -153,13 +151,13 @@ public class ROIDetector implements Closeable {
 
         @NonNull
         @Override
-        public Task<RotatedRect> addOnCompleteListener(@NonNull OnCompleteListener<RotatedRect> onCompleteListener) {
+        public Task<List<Point>> addOnCompleteListener(@NonNull OnCompleteListener<List<Point>> onCompleteListener) {
             this.onCompleteListener = onCompleteListener;
             return this;
         }
 
         @Override
-        public <X extends Throwable> RotatedRect getResult(@NonNull Class<X> aClass) throws X {
+        public <X extends Throwable> List<Point> getResult(@NonNull Class<X> aClass) throws X {
             throw new UnsupportedOperationException("Unsupported operation getResult");
         }
 
@@ -171,38 +169,38 @@ public class ROIDetector implements Closeable {
 
         @NonNull
         @Override
-        public Task<RotatedRect> addOnSuccessListener(@NonNull OnSuccessListener<? super RotatedRect> onSuccessListener) {
+        public Task<List<Point>> addOnSuccessListener(@NonNull OnSuccessListener<? super List<Point>> onSuccessListener) {
             this.onSuccessListener = onSuccessListener;
             return this;
         }
 
         @NonNull
         @Override
-        public Task<RotatedRect> addOnSuccessListener(@NonNull Executor executor, @NonNull OnSuccessListener<? super RotatedRect> onSuccessListener) {
+        public Task<List<Point>> addOnSuccessListener(@NonNull Executor executor, @NonNull OnSuccessListener<? super List<Point>> onSuccessListener) {
             throw new UnsupportedOperationException("Unsupported operation addOnSuccessListener with executor");
         }
 
         @NonNull
         @Override
-        public Task<RotatedRect> addOnSuccessListener(@NonNull Activity activity, @NonNull OnSuccessListener<? super RotatedRect> onSuccessListener) {
+        public Task<List<Point>> addOnSuccessListener(@NonNull Activity activity, @NonNull OnSuccessListener<? super List<Point>> onSuccessListener) {
             throw new UnsupportedOperationException("Unsupported operation addOnSuccessListener with Activity");
         }
 
         @NonNull
         @Override
-        public Task<RotatedRect> addOnFailureListener(@NonNull OnFailureListener onFailureListener) {
+        public Task<List<Point>> addOnFailureListener(@NonNull OnFailureListener onFailureListener) {
             throw new UnsupportedOperationException("Unsupported operation addOnFailureListener");
         }
 
         @NonNull
         @Override
-        public Task<RotatedRect> addOnFailureListener(@NonNull Executor executor, @NonNull OnFailureListener onFailureListener) {
+        public Task<List<Point>> addOnFailureListener(@NonNull Executor executor, @NonNull OnFailureListener onFailureListener) {
             throw new UnsupportedOperationException("Unsupported operation addOnFailureListener");
         }
 
         @NonNull
         @Override
-        public Task<RotatedRect> addOnFailureListener(@NonNull Activity activity, @NonNull OnFailureListener onFailureListener) {
+        public Task<List<Point>> addOnFailureListener(@NonNull Activity activity, @NonNull OnFailureListener onFailureListener) {
             throw new UnsupportedOperationException("Unsupported operation addOnFailureListener");
         }
     }

@@ -2,13 +2,12 @@ package com.anton111111.mlkittest.drivingidrecognition;
 
 import android.graphics.Rect;
 import android.support.annotation.NonNull;
-import android.util.Log;
 
 import com.anton111111.mlkittest.VisionProcessorMulti;
 import com.anton111111.opencv.detector.ContoursDetector;
 import com.anton111111.opencv.detector.ROIDetector;
 import com.anton111111.opencv.graphic.ContoursGraphic;
-import com.anton111111.opencv.graphic.ROIGraphic;
+import com.anton111111.opencv.graphic.PointsGraphic;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.ml.vision.FirebaseVision;
 import com.google.firebase.ml.vision.face.FirebaseVisionFace;
@@ -22,7 +21,7 @@ import com.google.firebase.samples.apps.mlkit.facedetection.FaceGraphic;
 import com.google.firebase.samples.apps.mlkit.textrecognition.TextGraphic;
 
 import org.opencv.core.MatOfPoint;
-import org.opencv.core.RotatedRect;
+import org.opencv.core.Point;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -69,7 +68,7 @@ public class DrivingIdRecognitionProcessor extends VisionProcessorMulti {
         graphicOverlay.clear();
         FirebaseVisionFace face = null;
         List<FirebaseVisionText.Element> elements = null;
-        RotatedRect roi = null;
+        List<Point> roi = null;
         List<MatOfPoint> contours = null;
 
         for (Object result : resultsList) {
@@ -81,8 +80,10 @@ public class DrivingIdRecognitionProcessor extends VisionProcessorMulti {
                     ((List) result).get(0) instanceof FirebaseVisionFace) {
                 face = onSuccessFace((List<FirebaseVisionFace>) result, frameMetadata, graphicOverlay);
             }
-            if (result instanceof RotatedRect) {
-                roi = (RotatedRect) result;
+            if (result instanceof List &&
+                    ((List) result).size() > 0 &&
+                    ((List) result).get(0) instanceof Point) {
+                roi = (List<Point>) result;
             }
             if (result instanceof List &&
                     ((List) result).size() > 0 &&
@@ -107,7 +108,7 @@ public class DrivingIdRecognitionProcessor extends VisionProcessorMulti {
 
         if (roi != null) {
             graphicOverlay.add(
-                    new ROIGraphic(graphicOverlay, roi)
+                    new PointsGraphic(graphicOverlay, roi)
             );
         }
         if (contours != null) {

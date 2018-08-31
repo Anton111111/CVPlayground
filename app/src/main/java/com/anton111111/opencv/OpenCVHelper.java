@@ -49,7 +49,6 @@ public class OpenCVHelper {
     public static Mat matFromByteBuffer(ByteBuffer frame, int width, int height, int format, int rotate) {
         byte[] data = new byte[frame.capacity()];
         ((ByteBuffer) frame.duplicate().clear()).get(data);
-Log.e("Yo", "!!!M: "+width+"x"+height);
         switch (format) {
             case android.graphics.ImageFormat.NV21:
                 Mat originalMat = new Mat(new Size(width, height + height / 2), CvType.CV_8UC1);
@@ -80,73 +79,72 @@ Log.e("Yo", "!!!M: "+width+"x"+height);
         }
     }
 
-    public static RotatedRect getBestRectByArea(List<RotatedRect> boundingRects) {
-        RotatedRect bestRect = null;
-
-        if (boundingRects.size() >= 1) {
-            RotatedRect boundingRect;
-            Point[] vertices = new Point[4];
-            Rect rect;
-            double maxArea;
-            int ixMaxArea = 0;
-
-            // find best rect by area
-            boundingRect = boundingRects.get(ixMaxArea);
-            boundingRect.points(vertices);
-            rect = Imgproc.boundingRect(new MatOfPoint(vertices));
-            maxArea = rect.area();
-
-            for (int ix = 1; ix < boundingRects.size(); ix++) {
-                boundingRect = boundingRects.get(ix);
-                boundingRect.points(vertices);
-                rect = Imgproc.boundingRect(new MatOfPoint(vertices));
-
-                if (rect.area() > maxArea) {
-                    maxArea = rect.area();
-                    ixMaxArea = ix;
-                }
-            }
-
-            bestRect = boundingRects.get(ixMaxArea);
-        }
-
-        return bestRect;
-    }
-
-    public static RotatedRect findROI(Mat sourceMat) {
-        final Mat mat = new Mat();
-        sourceMat.copyTo(mat);
-
-        Imgproc.cvtColor(mat, mat, Imgproc.COLOR_RGB2GRAY);
-        Imgproc.threshold(mat, mat, 146, 250, Imgproc.THRESH_BINARY);
-
-        // find contours
-        List<MatOfPoint> contours = new ArrayList<>();
-        List<RotatedRect> boundingRects = new ArrayList<>();
-        Imgproc.findContours(mat, contours, new Mat(), Imgproc.RETR_LIST, Imgproc.CHAIN_APPROX_SIMPLE);
-
-        // find appropriate bounding rectangles
-        for (MatOfPoint contour : contours) {
-            MatOfPoint2f areaPoints = new MatOfPoint2f(contour.toArray());
-            RotatedRect boundingRect = Imgproc.minAreaRect(areaPoints);
-            boundingRects.add(boundingRect);
-        }
-
-        return getBestRectByArea(boundingRects);
-
-    }
 
     public static List<MatOfPoint> findContours(Mat sourceMat) {
         final Mat mat = new Mat();
         sourceMat.copyTo(mat);
 
-        Imgproc.cvtColor(mat, mat, Imgproc.COLOR_RGB2GRAY);
-        Imgproc.threshold(mat, mat, 146, 250, Imgproc.THRESH_BINARY);
+        //convert the image to black and white
+        Imgproc.cvtColor(mat, mat, Imgproc.COLOR_BGR2GRAY);
 
-        // find contours
+        //convert the image to black and white does (8 bit)
+        Imgproc.Canny(mat, mat, 50, 50);
+
+        //apply gaussian blur to smoothen lines of dots
+        Imgproc.GaussianBlur(mat, mat, new Size(5, 5), 5);
+
+        //find the contours
         List<MatOfPoint> contours = new ArrayList<>();
         Imgproc.findContours(mat, contours, new Mat(), Imgproc.RETR_LIST, Imgproc.CHAIN_APPROX_SIMPLE);
         return contours;
+    }
+
+    public static List<Point> findROI(Mat sourceMat) {
+
+        //find the contours
+        List<MatOfPoint> contours = findContours(sourceMat);
+
+        if (contours == null || contours.size() == 0) {
+            return null;
+        }
+
+        double maxArea = -1;
+        MatOfPoint temp_contour = contours.get(0); //the largest is at the index 0 for starting point
+        MatOfPoint2f approxCurve = new MatOfPoint2f();
+
+        for (int idx = 0; idx < contours.size(); idx++) {
+            temp_contour = contours.get(idx);
+            double contourarea = Imgproc.contourArea(temp_contour);
+            //compare this contour to the previous largest contour found
+            if (contourarea > maxArea) {
+                //check if this contour is a square
+                MatOfPoint2f new_mat = new MatOfPoint2f(temp_contour.toArray());
+                int contourSize = (int) temp_contour.total();
+                MatOfPoint2f approxCurve_temp = new MatOfPoint2f();
+                Imgproc.approxPolyDP(new_mat, approxCurve_temp, contourSize * 0.05, true);
+                if (approxCurve_temp.total() == 4) {
+                    maxArea = contourarea;
+                    approxCurve = approxCurve_temp;
+                }
+            }
+        }
+
+
+        double[] temp_double;
+        temp_double = approxCurve.get(0, 0);
+        Point p1 = new Point(temp_double[0], temp_double[1]);
+        temp_double = approxCurve.get(1, 0);
+        Point p2 = new Point(temp_double[0], temp_double[1]);
+        temp_double = approxCurve.get(2, 0);
+        Point p3 = new Point(temp_double[0], temp_double[1]);
+        temp_double = approxCurve.get(3, 0);
+        Point p4 = new Point(temp_double[0], temp_double[1]);
+        List<Point> source = new ArrayList<Point>();
+        source.add(p1);
+        source.add(p2);
+        source.add(p3);
+        source.add(p4);
+        return source;
     }
 
 }
